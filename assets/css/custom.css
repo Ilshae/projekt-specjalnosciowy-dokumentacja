@@ -1,0 +1,34 @@
+.idocs-navigation,
+.idocs-content,
+.nav,
+.primary-menu {
+  background-color: black !important;
+  color: white !important;
+}
+.idocs-navigation a,
+.idocs-content a,
+.nav a,
+.primary-menu a,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: white !important;
+}
+
+.idocs-navigation .nav .nav .nav-item .nav-sublink:after {
+  display: none;
+}
+.idocs-navigation .nav .nav .nav-item .nav-sublink.active:after {
+  display: none;
+}
+
+.progress-bar,
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link,
+.dropdown-item.active,
+.dropdown-item:active {
+  background-color: #6c757d2c;
+}
