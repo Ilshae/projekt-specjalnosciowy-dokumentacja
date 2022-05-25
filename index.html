@@ -712,6 +712,33 @@
               </li>
             </ul>
           </li>
+
+          <!-- Integracja Spring z bazą danych -->
+          <li class="nav-item">
+            <a class="nav-link" href="#idocs_spring_baza_danych">Integracja Spring z bazą danych</a>
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_encje">Encje</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_repozytoria">Repozytoria</a>
+              </li>
+            </ul>
+          </li>
+
+           <!-- Endpoint'y -->
+           <li class="nav-item">
+            <a class="nav-link" href="#idocs_endpoint">Endpoint'y</a>
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_ednpoint_kategorie">Kategorie</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_ednpoint_produkty">Produkty</a>
+              </li>
+            </ul>
+          </li>
+
           </li>
         </ul>
       </div>
@@ -778,6 +805,8 @@
             <p>
               <b>Front end:</b> <br />HTML, CSS, Javascript, React,
               StyledComponents, Redux, Express, Jest
+              <br>
+              <b>Back end:</b> <br />Java, Spring
             </p>
           </section>
           <hr class="divider" />
@@ -6142,10 +6171,337 @@ it('renders correctly when there are no items', () =&gt; {
                     </p>
                     
                   </section>
+
+                  <hr class="divider" />
+          <!-- Integracja Spring z bazą danych
+              ============================ -->
+              <section id="idocs_spring_baza_danych">
+                <h2>Integracja Spring z bazą danych</h2>
+                <h5>Spring Data</h5>
+                <p>Komponentem Spring umożliwiającym integrację z bazą danych jest Spring Data, aby móc z niego korzystać musimy dodać
+                  odpowiednie zależności do projektu.
+                  <br>
+                  <a class="popup-img" href="assets/images/spring_data_dependency.png"><img 
+                    src="assets/images/spring_data_dependency.png" alt="" /></a>
+                </p>
+                <h5>Konfiguracja</h5>
+                <p>Połączenie konfigurujemy w pliku application.properties
+                  <br>
+                  <pre><code>
+spring.datasource.url=jdbc:mysql://localhost:3306/projekt?useSSL=false  
+spring.datasource.username=root
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL5InnoDBDialect
+spring.jpa.hibernate.ddl-auto = update
+                  </code></pre>
+                  <br>
+                  Pierwsza linijka kodu dotyczy lokalizacji bazy danych,
+                  druga zawiera dane dostępu,
+                  trzecia określa mapowanie dla konkretnego typu bazy danych,
+                  a czwarta określa strategię genarowania schematu bazy danych.
+
+                </p>
+
+                
+              </section>
+              <hr class="divider" />
+    
+              <!-- Encje
+                  ============================ -->
+              <section id="idocs_encje">
+                <h2>Encje</h2>
+                <p>
+                  Encje to sposób reprezentacji tabel bazy danych w kodzie JAVY.<br>
+                  Obiekty utworzone z klasy oznaczonej adnotacją 'Entity' będą reprezentować rekordy w bazie danych.
+                </p>
+                <h5>Encja produkt</h5>
+                <pre><code class="language-java">
+@Entity                     //andotacja oznaczająca klasę jako encję
+@Table(name = "products")   // Przypisanie konkretnej nazwy tabeli dla encji
+public class Product {
+    @Id                     //oznaczenie pola jako klucz główny
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //określenie sposobu generacji klucza głównego
+    @Column(name = "id")    // przypisanie konkretnej nazwy dla danej kolumny
+    private Long id;
+
+    @Column(name = "name")
+    private String name;
+    @Column(name = "price")
+    private int price;
+    @Column(name = "image")
+    private String image;
+
+    @ManyToOne(cascade = CascadeType.ALL)   //Mapowanie relacji bazo-danowej 
+    @JoinColumn(name = "category_id", referencedColumnName = "id")    
+    @JsonIgnore   //adnotacja dzięki, której pole category jest ignorowane przy eksportowaniu danych do endpoint
+    private Category category;
+
+    public Product() {
+
+    }
+
+    public Product(String name, int price, String image, Category category) {
+        this.name = name;
+        this.price = price;
+        this.image = image;
+        this.category = category;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getPrice() {
+        return price;
+    }
+
+    public void setPrice(int price) {
+        this.price = price;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
+
+
+}
+                </code></pre>
+                <h5>Encja category</h5>
+                <pre><code class="language-java">
+@Entity
+@Table(name = "categories")
+public class Category {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String image;
+
+    @OneToMany(mappedBy = "category")
+    private List<Product> products;
+
+    public Category(long id, String name, String image) {
+        this.id = id;
+        this.name = name;
+        this.image = image;
+    }
+
+    public Category() {
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public List<Product> getProducts() {
+        return products;
+    }
+
+    public void setProducts(List<Product> products) {
+        this.products = products;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
+    }
+
+    @Override
+    public String toString() {
+        return "Category{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                '}';
+    }
+}
+                </code></pre>
+                
+              </section>
+              <hr class="divider" />
+              <!-- Repozytoria
+                  ============================ -->
+                  <section id="idocs_repozytoria">
+                    <h2>Repozytoria</h2>
+                      <p>
+                        Repozytoria umożliwiają zarządzanie obiektami encji. Pozwalają pobierać, dodawać czy usuwać rekordy tabel.
+                        <br>
+                        <h5>Repozytorium Category</h5>
+                <pre><code class="language-java">
+                  
+@Repository //adnotacja oznaczająca interfejs jako repozytorium
+public interface CategoryRepo extends JpaRepository&lt;Category, Long&gt; {  
+    List<Category> findAll();
+}
+                </code></pre>
+                  Aby utworzyć własne repozytorium, tworzymy interfejs dziedziczący po JpaRepository. JpaRepository przyjmuje dwa parametry. 
+                  Pierwszym z nich jest encja, którą zarządza, a drugim jest typ id w encji zarządzanej.
+                  <br>
+                  <ul>Dziedzicznie po JpaRepository pozwala nam korzystać z jego metod, takich jak:
+                  <li>findById – pobieranie elementu po id</li>
+                  <li>save – zapis elementu do bazy</li>
+                  <li>deleteById – usunięcie elementu po id</li>
+                  <li>i  wiele innych...</li>
+                </ul>
+                    </p>
+                    
+                  </section>
+                  <hr class="divider" />
+
+
+                   <!-- Endpoint'y
+              ============================ -->
+              <section id="idocs_endpoint">
+                <h2>Endpoint'y</h2>
+                <h5>RestController</h5>
+                <p>
+                  REST (representational state transfer) jest sposobem komunikacji opartym o protokół HTTP. 
+                  <br>
+                  Adnotacja RestController oznacza klasę jako kontroler, a wartości zwracane przez funkcje tej klasy
+                  będą naszymi endpoint'ami.
+                </p>
+                
+              </section>
+              <hr class="divider" />
+              <!-- Kategorie
+                  ============================ -->
+                  <section id="idocs_ednpoint_kategorie">
+                    <h2>Kategorie</h2>
+                      
+                        <h5>MainPageController</h5>
+                <pre><code class="language-java">
+  @CrossOrigin(origins = "http://localhost:3000") //andotacja pozwalająca wspóldzielić zasoby z innych źródeł
+  @RestController
+  @RequestMapping("/api/v1/")                     //określenie mapowania adresu dla klasy
+  public class MainPageController {
+      @Autowired                                  // wstrzykiwanie zależności, pozwala korzystać z CategoryRepo
+      CategoryRepo categoryRepo;
+      @RequestMapping("categories")               // określenie mapowania dla konkretnej metody
+      public List&lt;Object&gt getCategories(){
+          var sections = new ArrayList&lt;&gt;();
+          List&lt;Category&gt; categories = categoryRepo.findAll();   //korzystając z repozytorium category, pobieramy
+                                                                  // wszystkie kategorie z bazy danych do listy
+
+          for (Category category : categories){       //formatowanie danych do endpoint'u
+              sections.add(getsection(category));
+          }
+          return sections;
+      }
+  
+      HashMap&lt;String,Object&gt; getsection(Category c){
+          var section = new HashMap&lt;String, Object&gt;();
+          section.put("title", c.getName().toLowerCase(Locale.ROOT));
+          section.put("image", c.getImage() );
+          section.put("id", c.getId());
+          return section;
+      }
+  }
+                </code></pre>
+                    <p>
+                      Funkcja getCategories zwróci nam pod adresem /api/v1/categories, endpoint w postaci danych JSON
+                      <br>
+                      <a class="popup-img" href="assets/images/kategorie_JSON.png"><img 
+                        src="assets/images/kategorie_JSON.png" alt="" /></a>
+                      
+                    </p>
+                    
+                  </section>
+
+                  <hr class="divider" />
+                  <!-- Produkty
+                  ============================ -->
+                  <section id="idocs_ednpoint_produkty">
+                    <h2>Produkty</h2>
+                    <h5>ProductController</h5>
+                    <pre><code class="language-java">
+    @CrossOrigin(origins = "http://localhost:3000")
+    @RestController
+    @RequestMapping("/api/v1/")
+    public class ProductController {
+    
+        @Autowired
+        private ProductRepository productRepository;
+        @Autowired
+        private CategoryRepo categoryRepo;
+        
+        @GetMapping("/products")
+        public HashMap&lt;String, Object&gt; getAllProducts() {
+            var products = new HashMap&lt;String, Object&gt;();
+            List&lt;Category&gt; categories = categoryRepo.findAll();
+    
+            for (Category category : categories){
+                products.put(category.getName().toLowerCase(Locale.ROOT), getCategory(category));
+            }
+            return products;
+        }
+    
+        HashMap&lt;String,Object&gt; getCategory(Category c){
+            var category = new HashMap&lt;String, Object&gt;();
+            category.put("title", c.getName());
+            category.put("routeName", c.getName().toLowerCase(Locale.ROOT));
+            category.put("id", c.getName().toLowerCase(Locale.ROOT));
+            category.put("items", c.getProducts());
+            return category;
+        }
+    }
+                    </code></pre>
+                        <p>
+                          Funkcja getAllProducts zwróci nam pod adresem /api/v1/products, endpoint w postaci danych JSON
+                          <br>
+                          <a class="popup-img" href="assets/images/produkty_JSON.png"><img 
+                            src="assets/images/produkty_JSON.png" alt="" /></a>
+                          
+                        </p>
+                    
+                  </section>
+
+                  <hr class="divider" />
         </div>
       </div>
     </div>
     <!-- Content end -->
+
 
     <!-- Footer
   ============================ -->
