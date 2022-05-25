@@ -700,6 +700,18 @@
               </li>
             </ul>
           </li>
+          <!-- Baza danych -->
+          <li class="nav-item">
+            <a class="nav-link" href="#idocs_baza_danych">Baza danych</a>
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_ogolne_informacje">Ogólne informacje</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_schemat">Schemat</a>
+              </li>
+            </ul>
+          </li>
           </li>
         </ul>
       </div>
@@ -6092,6 +6104,44 @@ it('renders correctly when there are no items', () =&gt; {
 });</code></pre>
           </section>
           <hr class="divider" />
+          <!-- Baza danych
+              ============================ -->
+              <section id="idocs_baza_danych">
+                <h2>Baza danych</h2>
+                <p class="text-4">Informacje na temat bazy danych</p>
+              </section>
+              <hr class="divider" />
+    
+              <!-- Ogólne informacje
+                  ============================ -->
+              <section id="idocs_ogolne_informacje">
+                <h2>Ogólne informacje</h2>
+                <p>
+                  Na potrzeby projektu potrzebujemy przechowywać produkty występujące w naszym sklepie internetowym oraz konta użytkowników.
+                  <br>
+                  Produkty są przechowywane w tabeli 'products'. W celu zmniejszenia redundancji utworzona została również tabela 
+                  'categories' przechowująca kategorie produktów.
+                  <br>
+                  Użytkownicy znajdują się w tabeli 'users', a role użytkowników w osobnej tabeli 'roles'.
+                </p>
+                
+              </section>
+              <hr class="divider" />
+              <!-- Schemat
+                  ============================ -->
+                  <section id="idocs_schemat">
+                    <h2>Schemat</h2>
+                      <p>
+                        <a class="popup-img" href="assets/images/diagram_bazy_danych.png"><img 
+                            src="assets/images/diagram_bazy_danych.png" alt="" /></a>
+                      </p>
+                      <p>
+                        Tabele 'products' i 'categories' połączone są relacją wiele do jednego, tak jak tabele 'users' i 'roles'.
+                        <br>
+                        W polach image przechowywane są linki do zdjęć.
+                    </p>
+                    
+                  </section>
         </div>
       </div>
     </div>
