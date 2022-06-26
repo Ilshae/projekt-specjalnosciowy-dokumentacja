@@ -473,6 +473,26 @@
                   </li>
                 </ul>
               </li>
+              <!-- admin -->
+              <li class="nav-item">
+                <a class="nav-link nav-sublink dropdown" href="#idocs_admin">admin</a>
+                <ul class="nav flex-column">
+                  <li class="nav-item dropdown-item">
+                    <a class="nav-link" href="#idocs_admin_component">
+                      admin.component</a>
+                  </li>
+                </ul>
+              </li>
+              <!-- user -->
+              <li class="nav-item">
+                <a class="nav-link nav-sublink dropdown" href="#idocs_user">user</a>
+                <ul class="nav flex-column">
+                  <li class="nav-item dropdown-item">
+                    <a class="nav-link" href="#idocs_user_component">
+                      user.component</a>
+                  </li>
+                </ul>
+              </li>
               <!-- error-boundary -->
               <li class="nav-item">
                 <a class="nav-link nav-sublink dropdown" href="#idocs_error_boundary_component">error-boundary</a>
@@ -669,6 +689,33 @@
                       user.types.js</a>
                   </li>
                 </ul>
+              </li>
+            </ul>
+          </li>
+
+          <!-- Services -->
+          <li class="nav-item">
+            <a class="nav-link" href="#idocs_services">Services</a>
+            <ul class="nav flex-column">
+              <!-- auth-header -->
+              <li class="nav-item">
+                <a class="nav-link nav-sublink" href="#idocs_auth_header">auth-header.js</a>
+              </li>
+              <!-- auth-service -->
+              <li class="nav-item">
+                <a class="nav-link nav-sublink" href="#idocs_auth_service">auth-service.js</a>
+              </li>
+              <!-- categories-service -->
+              <li class="nav-item">
+                <a class="nav-link nav-sublink" href="#idocs_categories_service">categories-service.js</a>
+              </li>
+              <!-- product-service -->
+              <li class="nav-item">
+                <a class="nav-link nav-sublink" href="#idocs_product_service">product-service.js</a>
+              </li>
+              <!-- user-service -->
+              <li class="nav-item">
+                <a class="nav-link nav-sublink" href="#idocs_user_service">user-service.js</a>
               </li>
             </ul>
           </li>
@@ -974,8 +1021,7 @@ import { createStructuredSelector } from 'reselect';  // createStructuredSelecto
 import CartIcon from '../cart-icon/cart-icon.component';  // import innych komponentów
 import CartDropdown from '../cart-dropdown/cart-dropdown.component';  // import innych komponentów
 import { selectCartHidden } from '../../redux/cart/cart.selectors';  // selektor to getter dla store
-import { selectCurrentUser } from '../../redux/user/user.selectors';  // selektor to getter dla store
-import { signOutStart } from '../../redux/user/user.actions';    // action to zwykły obiekt JavaScript, które ma pole typu. Akcja opisuje coś, co wydarzyło się w aplikacji.
+import AuthService from '../../services/auth.service';  // zawiera operacje komunikujące się z backendu
 
 import { ReactComponent as Logo } from '../../assets/logo.svg'; // import grafiki Logo.svg
 
@@ -988,11 +1034,10 @@ import {
 } from './header.styles'; // import styli StyledComponents, jest to biblioteka tworząca komponenty i załączająca do nich css w formie js
 
 export const Header = (
-  { currentUser, hidden, signOutStart } // deklaracja komponentu funkcyjnego, przekazanie propsów
+  { user, userPath, hidden } // deklaracja komponentu funkcyjnego, przekazanie propsów
 ) =&gt; (
   &lt;HeaderContainer&gt;
-    &lt;BrandContainer to='/'&gt;  // ikona loga + nazwa aplikacji, po kliknięciu przekierowuje do '/', czyli do /
-      {' '}
+    &lt;BrandContainer to='/'&gt;  // ikona loga + nazwa aplikacji, po kliknięciu przekierowuje do '/''
       &lt;LogoContainer&gt;
         &lt;Logo /&gt;
       &lt;/LogoContainer&gt;
@@ -1000,7 +1045,12 @@ export const Header = (
     &lt;/BrandContainer&gt;
     &lt;OptionsContainer&gt;
       &lt;OptionLink to='/shop'&gt;SHOP&lt;/OptionLink&gt; // wyświetl w nawigacji SHOP
-      {currentUser ? ( // jeżeli użytkownik jest zalogowany, wyświetl SIGN OUT, jeżeli nie jest zalogowany, wyświetl SIGN IN
+      {user &amp;&amp; user.roles.includes(&quot;ROLE_ADMIN&quot;) &amp;&amp; (  // jeżeli użytkownik jest zalogowany i jest adminem ma dostęp do panelu admina
+        &lt;UserLink to=&quot;/admin&quot;&gt;Admin Board&lt;/UserLink&gt;
+      )}
+      {user ? &lt;UserLink to={userPath}&gt;{user.username}'S PAGE&lt;/UserLink&gt; : &quot;&quot;}  // jeżeli użytkownik jest zalogowany ma dostęp do personalnej strony
+      &lt;OptionLink to=&quot;/shop&quot;&gt;SHOP&lt;/OptionLink&gt;
+      {user ? ( // jeżeli użytkownik jest zalogowany, wyświetl SIGN OUT, jeżeli nie jest zalogowany, wyświetl SIGN IN
         &lt;OptionLink as='div' onClick={signOutStart}&gt;
           SIGN OUT
         &lt;/OptionLink&gt;
@@ -1014,15 +1064,10 @@ export const Header = (
 );
 
 const mapStateToProps = createStructuredSelector({  // createStructuredSelector pobiera obiekt, którego właściwości są selectorami danych wejściowych, i zwraca selector strukturalny. elector strukturalny zwraca obiekt z tymi samymi kluczami, co selectorami danych wejściowych, ale z selectorami zastąpionymi ich wartościami
-  currentUser: selectCurrentUser,
   hidden: selectCartHidden,
 });
 
-const mapDispatchToProps = (dispatch) =&gt; ({  // jeżeli użytkownik kliknie Sign Out, przekazuje do store informację, że użytkownik się wylogował
-  signOutStart: () =&gt; dispatch(signOutStart()),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(Header);  // connect łączy komponent React ze store Redux</code></pre>
+export default connect(mapStateToProps)(Header);  // connect łączy komponent React ze store Redux</code></pre>
             </div>
             <div id="idocs_header_styles">
               <h4 class="mt-5">header.styles.jsx</h4>
@@ -3607,33 +3652,56 @@ it('should render SignInAndSignUpPage component', () =&gt; {  // wyrenderuj komp
                     src="assets/images/sign_in.png" alt="" /></a>
               </p>
               <pre><code class="language-javascript">import React, { useState } from 'react';  // potrzebne do interpretacji JS na JSX, gdy w Reakcie piszemy js, tak naprawdę w procesesie buildu zostanie to przekonwertowane na JSX i wywołane zostaną funkcje jak np. React.createElement(p), dla &lt;p&gt;&lt;/p&gt;, useState to hook to Reacta pozwalający na używanie stanu w komponencie
-import { connect } from 'react-redux';  // connect łączy komponent React ze store Redux
 
 import FormInput from '../form-input/form-input.component';  // import komponentu występującego w SignIn
 import CustomButton from '../custom-button/custom-button.component';  // import komponentu występującego w SignIn
-
-import {
-  emailSignInStart,
-} from '../../redux/user/user.actions';  // action to zwykły obiekt JavaScript, które ma pole typu. Akcja opisuje coś, co wydarzyło się w aplikacji.
 
 import {
   SignInContainer,
   SignInTitle,
   ButtonsBarContainer,
 } from './sign-in.styles';  // import styli StyledComponents, jest to biblioteka tworząca komponenty i załączająca do nich css w formie js
+import AuthService from "../../services/auth.service";  // zawiera operacje komunikujące się z backendu
 
 const SignIn = ({ emailSignInStart }) =&gt; {  // deklaracja komponentu funkcyjnego, przekazanie propsów
   const [userCredentials, setCredentials] = useState({  // w stanie komponentu będzie znajdować się email i password, użyjemy funkcji setUserCredentials to zmiany tych zmiennych
-    email: '',
-    password: '',
+    userName: "",
+    password: "",
+    loading: false,
+    message: ""
   });
 
-  const { email, password } = userCredentials;  // W ES6 wprowadzono destrukturyzację. Jest to funkcja JavaScript, która pozwala nam wyodrębnić wiele fragmentów danych z tablicy lub obiektu i przypisać je do własnych zmiennych
+  const { userName, password } = userCredentials;  // W ES6 wprowadzono destrukturyzację. Jest to funkcja JavaScript, która pozwala nam wyodrębnić wiele fragmentów danych z tablicy lub obiektu i przypisać je do własnych zmiennych
 
   const handleSubmit = async (event) =&gt; {  //  funkcja wywoływana przy kliknięciu przycisku Submit w formularzu
     event.preventDefault();
 
-    emailSignInStart(email, password);  // wywołuje funkcję emailSignInStart z wartościami email i password
+    setUserCredentials({  // zmienia stan komponentu
+      message: "",
+      loading: true
+    });
+
+    AuthService.login(userName, password).then(  // wysyła zapytanie do backendu, przy odpowiedzi 200 przekierowuje zalogowanego użytkownika na stronę główną
+      () =&gt; {
+        window.location.href = &quot;http://localhost:3000&quot;;
+      },
+      error =&gt; {
+        const resMessage =
+          (error.response &amp;&amp;
+            error.response.data &amp;&amp;
+            error.response.data.message) ||
+          error.message ||
+          error.toString();
+        setUserCredentials({
+          userName: userName,
+          password: &quot;&quot;,
+          confirmPassword: &quot;&quot;,
+          successful: false,
+          message: resMessage
+        });
+        alert(resMessage);
+      }
+    );
   };
 
   const handleChange = (event) =&gt; {  // funkcja wywowała się, gdy użytkownik będzie edytować pola username lub password
@@ -3649,11 +3717,11 @@ const SignIn = ({ emailSignInStart }) =&gt; {  // deklaracja komponentu funkcyjn
 
       &lt;form onSubmit={handleSubmit}&gt;  // po kliknięciu submit wywołaj funkcję handleSubmit
         &lt;FormInput
-          name=&quot;email&quot;
-          type=&quot;email&quot;
+          name=&quot;userName&quot;
+          type=&quot;userName&quot;
           handleChange={handleChange}
-          value={email}
-          label=&quot;email&quot;
+          value={userName}
+          label=&quot;User name&quot;
           required
         /&gt;
         &lt;FormInput
@@ -3661,7 +3729,7 @@ const SignIn = ({ emailSignInStart }) =&gt; {  // deklaracja komponentu funkcyjn
           type=&quot;password&quot;
           value={password}
           handleChange={handleChange}  // przy zmianie zawartości pul formularza wywołaj funkcję handleChange
-          label=&quot;password&quot;
+          label=&quot;Password&quot;
           required
         /&gt;
         &lt;ButtonsBarContainer&gt;
@@ -3672,12 +3740,9 @@ const SignIn = ({ emailSignInStart }) =&gt; {  // deklaracja komponentu funkcyjn
   );
 };
 
-const mapDispatchToProps = (dispatch) =&gt; ({  // jeżeli użytkownik zaloguje się którąś z metod, store zmieni użytkownika na zalogowanego 
-  emailSignInStart: (email, password) =&gt;
-    dispatch(emailSignInStart({ email, password })),
-});
 
-export default connect(null, mapDispatchToProps)(SignIn);  // connect łączy komponent React ze store Redux</code></pre>
+
+export default SignIn;  // connect łączy komponent React ze store Redux</code></pre>
             </div>
             <div id="idocs_sign_in_styles">
               <h4 class="mt-5">sign-in.styles.jsx</h4>
@@ -3908,24 +3973,23 @@ describe('FormInput component', () =&gt; {  // describe pozwala na tworzenie zes
                     src="assets/images/sign_up.png" alt="" /></a>
               </p>
               <pre><code class="language-javascript">import React, { useState } from 'react';  // potrzebne do interpretacji JS na JSX, gdy w Reakcie piszemy js, tak naprawdę w procesesie buildu zostanie to przekonwertowane na JSX i wywołane zostaną funkcje jak np. React.createElement(p), dla &lt;p&gt;&lt;/p&gt;, useState to hook to Reacta pozwalający na używanie stanu w komponencie
-import { connect } from 'react-redux';  // connect łączy komponent React ze store Redux
 
 import FormInput from '../form-input/form-input.component';  // import komponentu występującego w SignUp
 import CustomButton from '../custom-button/custom-button.component';  // import komponentu występującego w SignUp
-
-import { signUpStart } from '../../redux/user/user.actions';  // action to zwykły obiekt JavaScript, które ma pole typu. Akcja opisuje coś, co wydarzyło się w aplikacji.
-
 import { SignUpContainer, SignUpTitle } from './sign-up.styles';  // import styli StyledComponents, jest to biblioteka tworząca komponenty i załączająca do nich css w formie js
+import AuthService from "../../services/auth.service";   // zawiera operacje komunikujące się z backendu
 
 const SignUp = ({ signUpStart }) =&gt; {  // deklaracja komponentu funkcyjnego, przekazanie propsów
   const [userCredentials, setUserCredentials] = useState({  // w stanie komponentu będzie znajdować się displayName, email, password i confirmPassword, użyjemy funkcji setUserCredentials to zmiany tych zmiennych
-    displayName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+    userName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    successful: false,
+    message: ""
   });
 
-  const { displayName, email, password, confirmPassword } = userCredentials;  // W ES6 wprowadzono destrukturyzację. Jest to funkcja JavaScript, która pozwala nam wyodrębnić wiele fragmentów danych z tablicy lub obiektu i przypisać je do własnych zmiennych
+  const { userName, email, password, confirmPassword } = userCredentials;  // W ES6 wprowadzono destrukturyzację. Jest to funkcja JavaScript, która pozwala nam wyodrębnić wiele fragmentów danych z tablicy lub obiektu i przypisać je do własnych zmiennych
 
   const handleSubmit = async (event) =&gt; {
     event.preventDefault();
@@ -3935,7 +3999,33 @@ const SignUp = ({ signUpStart }) =&gt; {  // deklaracja komponentu funkcyjnego, 
       return;
     }
 
-    signUpStart({ displayName, email, password });
+    AuthService.register(userName, email, password).then(
+      response =&gt; {
+        setUserCredentials({
+          message: response.data.message,
+          successful: true
+        });
+        AuthService.login(userName, password);
+        window.location.href = &quot;http://localhost:3000&quot;;
+      },
+      error =&gt; {
+        const resMessage =
+          (error.response &amp;&amp;
+            error.response.data &amp;&amp;
+            error.response.data.message) ||
+          error.message ||
+          error.toString();
+        setUserCredentials({
+          userName: userName,
+          email: email,
+          password: &quot;&quot;,
+          confirmPassword: &quot;&quot;,
+          successful: false,
+          message: resMessage
+        });
+        alert(resMessage);
+      }
+    );
   };
 
   const handleChange = (event) =&gt; {
@@ -3951,10 +4041,10 @@ const SignUp = ({ signUpStart }) =&gt; {  // deklaracja komponentu funkcyjnego, 
       &lt;form className=&quot;sign-up-form&quot; onSubmit={handleSubmit}&gt;  // po kliknięciu submit wywołaj funkcję handleSubmit
         &lt;FormInput
           type=&quot;text&quot;
-          name=&quot;displayName&quot;
-          value={displayName}
+          name=&quot;userName&quot;
+          value={userName}
           onChange={handleChange}
-          label=&quot;Display Name&quot;
+          label=&quot;User Name&quot;
           required
         /&gt;
         &lt;FormInput
@@ -3987,11 +4077,7 @@ const SignUp = ({ signUpStart }) =&gt; {  // deklaracja komponentu funkcyjnego, 
   );
 };
 
-const mapDispatchToProps = (dispatch) =&gt; ({  // jeżeli użytkownik zarejestruje się którąś z metod, store przekaże te zmienne i zmieni stan użytkownika na zalogowanego
-  signUpStart: (userCredentials) =&gt; dispatch(signUpStart(userCredentials)),
-});
-
-export default connect(null, mapDispatchToProps)(SignUp);  // connect łączy komponent React ze store Redux</code></pre>
+export default SignUp;  // connect łączy komponent React ze store Redux</code></pre>
             </div>
             <div id="idocs_sign_up_styles">
               <h4 class="mt-5">sign-up.styles.jsx</h4>
@@ -4035,6 +4121,143 @@ it("should render SignUp component", () => { // wyrenderuj komponent SignUp
   expect(shallow(<SignUp/>)).toMatchSnapshot(); // sprawdź czy wyrenderowany SignUp jest zgodny z snapshotem
 });</code></pre>
           <hr class="divider" />
+
+        <!-- admin
+        ============================ -->
+        <section id="idocs_admin">
+          <h2>admin</h2>
+          <div id="idocs_admin_component">
+            <h4>admin.component.jsx</h4>
+            <p>Komponent Admin zawiera panel admina, do którego dostęp mają tylko użytkownicy zalogowani oraz z rolą admina.</p>
+            <p>
+              <a class="popup-img" href="assets/images/admin.png"><img class="img-fluid border"
+                  src="assets/images/admin.png" alt="" /></a>
+            </p>
+            <pre><code class="language-javascript">import React, { useState } from 'react';  // potrzebne do interpretacji JS na JSX, gdy w Reakcie piszemy js, tak naprawdę w procesesie buildu zostanie to przekonwertowane na JSX i wywołane zostaną funkcje jak np. React.createElement(p), dla &lt;p&gt;&lt;/p&gt;, useState to hook to Reacta pozwalający na używanie stanu w komponencie
+mport UserService from &quot;../../services/user.service&quot;;  // zawiera operacje komunikujące się z backendu
+
+export default class BoardAdmin extends Component {  // deklaracja komponentu
+  constructor(props) {  // konstruktor ze stanem
+    super(props);
+
+    this.state = {
+      content: &quot;&quot;
+    };
+  }
+
+  componentDidMount() {  // po operacji mount komponentu jest wysyłanie zapytanie na backend mające na celu zwrócić panel admina dla autoryzowanych użytkowników
+    UserService.getAdminBoard().then(
+      response =&gt; {
+        this.setState({
+          content: response.data
+        });
+      },
+      error =&gt; {
+        window.location.href = &quot;http://localhost:3000&quot;;  // w przypadku jakiegokolwiek błędu przekierowuje na stronę główną
+      }
+    );
+  }
+
+  render() {
+    return (
+      &lt;div className=&quot;container&quot;&gt;
+        &lt;header className=&quot;jumbotron&quot;&gt;
+          &lt;h3&gt;{this.state.content}&lt;/h3&gt;  // response z backendu
+        &lt;/header&gt;
+      &lt;/div&gt;
+    );
+  }
+}</code></pre>
+        </div>
+        </section>
+        <hr class="divider" />
+
+                  <!-- user
+        ============================ -->
+        <section id="idocs_user">
+          <h2>user</h2>
+          <div id="idocs_user_component">
+            <h4>user.component.jsx</h4>
+            <p>Komponent User zawiera personalną stronę każdego zalogowanego użytkownika. Zwraca informacje z bazy danych. W przypadku, gdy na stronę wejdzie niezalogowany użytkownik następuje przekierowanie.</p>
+            <p>
+              <a class="popup-img" href="assets/images/user.png"><img class="img-fluid border"
+                  src="assets/images/user.png" alt="" /></a>
+            </p>
+            <pre><code class="language-javascript">import React, { Component } from 'react';  // potrzebne do interpretacji JS na JSX, gdy w Reakcie piszemy js, tak naprawdę w procesesie buildu zostanie to przekonwertowane na JSX i wywołane zostaną funkcje jak np. React.createElement(p), dla &lt;p&gt;&lt;/p&gt;, useState to hook to Reacta pozwalający na używanie stanu w komponencie
+
+import { Redirect } from &quot;react-router-dom&quot;;  // komponent do przekierowania
+import AuthService from &quot;../../services/auth.service&quot;;  // zawiera operacje komunikujące się z backendem
+
+export default class UserPage extends Component {  // deklaracja komponentu
+  constructor(props) {  // deklaracja konstruktora, określenie stanu
+    super(props);
+
+    this.state = {
+      redirect: null,
+      userReady: false,
+      currentUser: { username: &quot;&quot; }
+    };
+  }
+
+  componentDidMount() {  // po zakończeniu operacji mount komponentu sprawdza czy użytkownik jest zalogowany, jeżeli nie to go przekierowuje
+    const currentUser = AuthService.getCurrentUser();
+
+    if (!currentUser) this.setState({ redirect: &quot;/home&quot; });
+    this.setState({ currentUser: currentUser, userReady: true });
+  }
+
+  render() {
+    if (this.state.redirect) {
+      return &lt;Redirect to={this.state.redirect} /&gt;;
+    }
+
+    const { currentUser } = this.state;
+
+    return (  // wyświetla szczegółowe informacje o zalogowanym użytkowniku
+      &lt;div className=&quot;container&quot;&gt;
+        {this.state.userReady ? (
+          &lt;div&gt;
+            &lt;header className=&quot;jumbotron&quot;&gt;
+              &lt;h3&gt;
+                &lt;strong&gt;{currentUser.username}&lt;/strong&gt; UserPage
+              &lt;/h3&gt;
+            &lt;/header&gt;
+            &lt;p&gt;
+              &lt;strong&gt;Token:&lt;/strong&gt; {currentUser.accessToken.substring(0, 20)}{&quot; &quot;}
+              ...{&quot; &quot;}
+              {currentUser.accessToken.substr(
+                currentUser.accessToken.length - 20
+              )}
+            &lt;/p&gt;
+            &lt;p&gt;
+              &lt;strong&gt;Id:&lt;/strong&gt; {currentUser.id}
+            &lt;/p&gt;
+            &lt;p&gt;
+              &lt;strong&gt;Email:&lt;/strong&gt; {currentUser.email}
+            &lt;/p&gt;
+            &lt;strong&gt;Authorities:&lt;/strong&gt;
+            &lt;ul&gt;
+              {currentUser.roles &amp;&amp;
+                currentUser.roles.map((role, index) =&gt; (
+                  &lt;li key={index}&gt;{role}&lt;/li&gt;
+                ))}
+            &lt;/ul&gt;
+          &lt;/div&gt;
+        ) : null}
+      &lt;/div&gt;
+    );
+  }
+}</code></pre>
+          </div>
+        </section>
+        <pre><code class="language-javascript">import React from "react"; // będziemy testować komponenty Reacta, więc trzeba go zaimportować
+import { shallow } from "enzyme"; // import funkcji do tzw shallow rendering, pozwala renderować komponent i sprawdzić co zwraca jego metoda render
+import SignUp from "./sign-up.component"; // import komponentu, który będziemy testować
+
+it("should render SignUp component", () => { // wyrenderuj komponent SignUp
+expect(shallow(<SignUp/>)).toMatchSnapshot(); // sprawdź czy wyrenderowany SignUp jest zgodny z snapshotem
+});</code></pre>
+        <hr class="divider" />
           <!-- error_boundary
         ============================ -->
           <section id="idocs_error_boundary">
@@ -4186,20 +4409,31 @@ const SignInAndSignUpPage = lazy(() =&gt;  // react.lazy pozwala renderować dyn
   import('./pages/sign-in-and-sign-up/sign-in-and-sign-up.component')
 );
 const CheckoutPage = lazy(() =&gt; import('./pages/checkout/checkout.component'));  // react.lazy pozwala renderować dynamicznie importowane komponenty jak zwykłe komponenty. React.lazy jako argument przyjmuje funkcję, która wywołuje dynamiczny import(). Musi ona zwrócić obiekt (Promise) (pol. obietnicę), która rozwiązuje się do modułu z eksportem domyślnym (default) zawierającym komponent reactowy. “Leniwy” komponent powinien zostać wyrenderowany wewnątrz Suspense, dzięki któremu na czas ładowania możemy wyświetlić komponent zastępczy (np. wskaźnik ładowania).
+const UserPage = lazy(() =&gt; import(&quot;./pages/userpage/userpage.component&quot;));  // react.lazy pozwala renderować dynamicznie importowane komponenty jak zwykłe komponenty. React.lazy jako argument przyjmuje funkcję, która wywołuje dynamiczny import(). Musi ona zwrócić obiekt (Promise) (pol. obietnicę), która rozwiązuje się do modułu z eksportem domyślnym (default) zawierającym komponent reactowy. “Leniwy” komponent powinien zostać wyrenderowany wewnątrz Suspense, dzięki któremu na czas ładowania możemy wyświetlić komponent zastępczy (np. wskaźnik ładowania).
+const AdminBoard = lazy(() =&gt;
+  import(&quot;./pages/adminboard/adminboard.component&quot;)
+);  // react.lazy pozwala renderować dynamicznie importowane komponenty jak zwykłe komponenty. React.lazy jako argument przyjmuje funkcję, która wywołuje dynamiczny import(). Musi ona zwrócić obiekt (Promise) (pol. obietnicę), która rozwiązuje się do modułu z eksportem domyślnym (default) zawierającym komponent reactowy. “Leniwy” komponent powinien zostać wyrenderowany wewnątrz Suspense, dzięki któremu na czas ładowania możemy wyświetlić komponent zastępczy (np. wskaźnik ładowania).
 
-const App = ({ checkUserSession, currentUser }) =&gt; {  // deklaracja, przekazanie propsów
-  useEffect(() =&gt; {
-    checkUserSession();
-  }, [checkUserSession]);  // za pierwszym razem po zrenderowaniu DOMu wywołaj funkcję checkUserSession, jest tu użyta tablica optymalizacyjna, co znaczy, że komponent wyrenderuje się jeszcze raz jeżeli stan checkUserSession się zmieni
+
+const App = () =&gt; {  // deklaracja
+  let [user, setUser] = useState(undefined);  // deklaracja stanu komponentu
+
+  let userPath =
+    user !== undefined && user !== null ? `/${user.username}` : "/undefined";  // każdy użytkownik ma swoją własną stronę, url strony jest oparty o login użytkownika
+  useEffect(() => {
+    setUser(AuthService.getCurrentUser());  // sprawdź kto jest zalogowany
+  }, []);
 
   return (
     &lt;PageWrapper&gt;  // wrapper styli dla wszystkiego znajdującego się w app
       &lt;GlobalStyle /&gt;  // style globalne dla całej aplikacji
-      &lt;Header /&gt;
+      &lt;Header user={user} userPath={userPath} /&gt;
       &lt;Switch&gt;  // switch sprawia, że tylko pierwsza znaleziona, pasująca ścieżka url zostanie wyświetlona
         &lt;ErrorBoundary&gt;  // w przypadku wystąpienia jakiegoś błędu wyświetal stronę 404
           &lt;Suspense fallback={&lt;Spinner /&gt;}&gt;  // w przypadku czekania na wgranie komponentu wyświetla kręcące się kółko
             &lt;Route exact path=&quot;/&quot; component={HomePage} /&gt;  // przy danej ścieżce url, wyświetl dany komponent
+            &lt;Route path=&quot;/admin&quot; component={AdminBoard} /&gt;  // przy danej ścieżce url, wyświetl dany komponent
+            &lt;Route exact path={userPath} component={UserPage} /&gt;  // przy danej ścieżce url, wyświetl dany komponent
             &lt;Route path=&quot;/shop&quot; component={ShopPage} /&gt;  // przy danej ścieżce url, wyświetl dany komponent
             &lt;Route exact path=&quot;/checkout&quot; component={CheckoutPage} /&gt;  // przy danej ścieżce url, wyświetl dany komponent
             &lt;Route
@@ -4217,15 +4451,7 @@ const App = ({ checkUserSession, currentUser }) =&gt; {  // deklaracja, przekaza
   );
 };
 
-const mapStateToProps = createStructuredSelector({  // przekazuje ze store do props informacje o zalogowanym użytkowniku
-  currentUser: selectCurrentUser,
-});
-
-const mapDispatchToProps = (dispatch) =&gt; ({  // sprawdź sesję użytkownika (czy jest zalogowany)
-  checkUserSession: () =&gt; dispatch(checkUserSession()),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(App);  // connect łączy komponent React ze store Redux</code></pre>
+export default App;  // connect łączy komponent React ze store Redux</code></pre>
           </section>
           <hr class="divider" />
 
@@ -5918,6 +6144,147 @@ export default UserActionTypes;  // wyeksportowanie komponentu, aby inne mogły 
           </section>
           <hr class="divider" />
 
+          <!-- Services
+          ============================ -->
+          <section id="idocs_services">
+            <h2>Services</h2>
+            <p>W plikach services znajdują się funkcje odpowiedzialne za komunikację z backendem.</p>
+          </section>
+          <hr class="divider" />
+
+          <!-- auth-header
+        ============================ -->
+          <section id="idocs_auth_header">
+            <h2>auth-header.js</h2>
+            <p>Auth header to plik pomocniczy zawierający header zapytań do API</p>
+            <pre><code class="language-javascript">export default function authHeader() {  // deklaracja funkcji
+  const user = JSON.parse(localStorage.getItem(&quot;user&quot;));  // zapisz do zmiennej aktualnie zalogowanego użytkownika
+
+  if (user &amp;&amp; user.accessToken) {  // jeżeli użytkownik jest zalogowany i posiada aktualny access token zwróc go
+    return { Authorization: &quot;Bearer &quot; + user.accessToken };
+  } else {
+    return {};
+  }
+}</code></pre>
+          </section>
+          <hr class="divider" />
+
+        <!-- auth-service
+        ============================ -->
+        <section id="idocs_auth_service">
+          <h2>auth-service.js</h2>
+          <p>Auth service zawiera operacje na użytkownikach (logowanie, rejestrację itp)</p>
+          <pre><code class="language-javascript">import axios from &quot;axios&quot;;  // import axios
+
+const API_URL = &quot;http://localhost:8080/api/auth/&quot;;  // url do backendu
+
+class AuthService {  // deklaracja komponentu
+  login(username, password) { // zaloguj użytkownika
+    return axios
+      .post(API_URL + &quot;signin&quot;, {
+        username,
+        password
+      })
+      .then(response =&gt; {
+        if (response.data.accessToken) {
+          localStorage.setItem(&quot;user&quot;, JSON.stringify(response.data));
+        }
+
+        return response.data;
+      });
+  }
+
+  logout() {  // wyloguj użytkownika
+    localStorage.removeItem(&quot;user&quot;);
+    window.location.reload();  // odśwież stronę
+  }
+
+  register(username, email, password) {  // zarejestruj użytkownika
+    return axios.post(API_URL + &quot;signup&quot;, {
+      username,
+      email,
+      password
+    });
+  }
+
+  getCurrentUser() {  // sprawdź kto jest aktualnie zalogowany
+    return JSON.parse(localStorage.getItem(&quot;user&quot;));
+  }
+}
+
+export default new AuthService();</code></pre>
+        </section>
+        <hr class="divider" />
+
+        <!-- categories-service
+        ============================ -->
+        <section id="idocs_categories_service">
+          <h2>categories-service.js</h2>
+          <p>Categories service zawiera operacje na kategoriach (womens, mens itp)</p>
+          <pre><code class="language-javascript">import axios from &quot;axios&quot;;  // import axios
+
+const CATEGORIES_API_BASE_URL = &quot;http://localhost:8080/api/v1/categories&quot;;  // url do backendu
+
+class CategoriesService {  // deklaracja komponentu
+  getCategories() {  // zwraca z backenu listę kategorii (produktów)
+    return axios.get(CATEGORIES_API_BASE_URL);
+  }
+}
+
+export default new CategoriesService();</code></pre>
+        </section>
+        <hr class="divider" />
+
+        <!-- product-service
+        ============================ -->
+        <section id="idocs_product_service">
+          <h2>product-service.js</h2>
+          <p>Product service zawiera operacje na produktach (womens, mens itp)</p>
+          <pre><code class="language-javascript">import axios from &quot;axios&quot;;  // import axios
+
+const PRODUCT_API_BASE_URL = &quot;http://localhost:8080/api/v1/products&quot;;  // url do backendu
+
+class ProductService {  // deklaracja komponentu
+  getProducts() {  // zwraca z backenu listę kategorii (produktów)
+    return axios.get(CATEGORIES_API_BASE_URL);
+  }
+}
+
+export default new ProductService();</code></pre>
+        </section>
+        <hr class="divider" />
+
+        <!-- user-service
+        ============================ -->
+        <section id="idocs_user_service">
+          <h2>user-service.js</h2>
+          <p>User service zawiera endpointy dotyczące użytkownika</p>
+          <pre><code class="language-javascript">import axios from &quot;axios&quot;;  // import axios
+import authHeader from &quot;./auth-header&quot;;  // import authHeader
+
+const API_URL = &quot;http://localhost:8080/api/v1/&quot;;  // url do backendu
+
+class UserService {  // deklaracja komponentu
+  getPublicContent() {
+    return axios.get(API_URL + &quot;all&quot;);  // endpoint na backendzie
+  }
+
+  getUserBoard() {
+    return axios.get(API_URL + &quot;user&quot;, { headers: authHeader() });  // endpoint na backendzie
+  }
+
+  getModeratorBoard() {
+    return axios.get(API_URL + &quot;mod&quot;, { headers: authHeader() });  // endpoint na backendzie
+  }
+
+  getAdminBoard() {
+    return axios.get(API_URL + &quot;adminPanel&quot;, { headers: authHeader() });  // endpoint na backendzie
+  }
+}
+
+export default new UserService();</code></pre>
+        </section>
+        <hr class="divider" />
 
           <!-- Dodatkowe wyjaśnienia
               ============================ -->
