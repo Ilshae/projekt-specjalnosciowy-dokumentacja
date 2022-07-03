@@ -739,6 +739,28 @@
             </ul>
           </li>
 
+          <!-- Uwierzytelnianie Spring Security -->
+          <li class="nav-item">
+            <a class="nav-link" href="#idocs_Uwierzytelnianie">Uwierzytelnianie Spring Security</a>
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_uwierzytelnianie_MiR">Modele i repozytoria</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_uwierzytelnianie_konfiguracja">Konfiguracja</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_uwierzytelnianie_UserDetails">UserDetails</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_uwierzytelnianie_JWT">JSON Web Token</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#idocs_uwierzytelnianie_kontroler">Kontroler</a>
+              </li>
+            </ul>
+          </li>
+
           </li>
         </ul>
       </div>
@@ -6493,6 +6515,561 @@ public interface CategoryRepo extends JpaRepository&lt;Category, Long&gt; {
                           
                         </p>
                     
+                  </section>
+
+                  <hr class="divider" />
+
+               <!-- Uwierzytelnianie Spring Security
+              ============================ -->
+              <section id="idocs_Uwierzytelnianie">
+                <h2>Uwierzytelnianie</h2>
+                <p class="text-4">Uwierzytelnianie w naszej aplikacji opiera się o autoryzację tokenową według poniższego schematu.</p>
+                <a class="popup-img" href="assets/images/spring-boot-authentication-jwt-spring-security-flow.png"><img 
+                  src="assets/images/spring-boot-authentication-jwt-spring-security-flow.png" alt="" /></a>
+                  <p>Po wysłaniu żądania logowania przez użytkownika, zostaje mu utworzony JSON Web Token, dzięki któremu 
+                    może on uzyskać dostęp do zasobów strony.</p>
+                    <p class="text-4">Architekrura serwera</p>
+                <a class="popup-img" href="assets/images/spring-boot-authentication-spring-security-architecture.png"><img 
+                  src="assets/images/spring-boot-authentication-spring-security-architecture.png" alt="" /></a>
+              </section>
+              <hr class="divider" />
+    
+              <!-- Modele i repozytoria
+                  ============================ -->
+              <section id="idocs_uwierzytelnianie_MiR">
+                <h2>Modele i repozytoria</h2>
+                <p>Na początek musimy stworzyć modele naszych tabeli bazodanowych oraz repozytoria zapewniające do nich dostęp</p>
+                <h5>Klasa User</h5>
+                <pre><code class="language-java">
+@Entity
+@Table(	name = "users",
+        uniqueConstraints = {       //andotacja zapewniająca unikalność atrybutów
+                @UniqueConstraint(columnNames = "username"),
+                @UniqueConstraint(columnNames = "email")
+        })
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @NotBlank
+    @Size(max = 20)
+    @Column(name = "username")
+    private String username;
+    @NotBlank
+    @Size(max = 50)
+    @Email
+    @Column(name = "email")
+    private String email;
+    @NotBlank
+    @Size(max = 120)
+    private String password;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"),
+                 inverseJoinColumns = @JoinColumn(name = "role_id"))
+                 //konfigururacja połączenia ManyToMany
+    private Set&lt;Role&gt; roles = new HashSet<>();
+
+    public User() {
+    }
+    public User(String username, String email, String password) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public String getUsername() {
+        return username;
+    }
+    public void setUsername(String username) {
+        this.username = username;
+    }
+    public String getEmail() {
+        return email;
+    }
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    public String getPassword() {
+        return password;
+    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    public Set&lt;Role&gt; getRoles() {
+        return roles;
+    }
+    public void setRoles(Set&lt;Role&gt; roles) {
+        this.roles = roles;
+    }
+}
+                </code></pre>
+                <h5>Repozytorium User</h5>
+                <pre><code class="language-java">
+@Repository
+public interface UserRepo extends JpaRepository&lt;User, Long&gt; {
+    Optional&lt;User&gt; findByUsername(String username); //Użycie klasy Optional pozwala zwrócić pustą wartość 
+    Boolean existsByUsername(String username);            //w przypadku braku danego użytkownika w bazie danych
+    Boolean existsByEmail(String email);                
+}
+                </code></pre>
+                <h5>Klasa Role</h5>
+                <pre><code class="language-java">
+@Entity
+@Table(name = "roles")
+public class Role {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ERole name;   //Typ wyliczeniowy ogranicza nam nazwy ról do wcześniej przez nas ustalonych
+
+    public Role() {
+    }
+
+    public Role(ERole name) {
+        this.name = name;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public ERole getName() {
+        return name;
+    }
+
+    public void setName(ERole name) {
+        this.name = name;
+    }
+}
+                </code></pre>
+                <h5>Repozytorium Role</h5>
+                <pre><code class="language-java">
+@Repository
+public interface RoleRepo extends JpaRepository&lt;Role, Long&gt; {
+    Optional&lt;Role&gt; findByName(ERole name);
+}
+                </code></pre>
+                <h5>Typ wyliczeniowy ERole</h5>
+                <pre><code class="language-java">
+                  public enum ERole {
+                    ROLE_USER,
+                    ROLE_ADMIN
+                }
+                </code></pre>
+              </section>
+              <hr class="divider" />
+              <!-- Konfiguracja
+                  ============================ -->
+                  <section id="idocs_uwierzytelnianie_konfiguracja">
+                    <h2>Konfiguracja</h2>
+                    <p>W celu wykorzystania Spring Security i JSON Web Token, musimy dodać do projektu następujące zależności.</p>
+                    <a class="popup-img" href="assets/images/spring_security_dependency.png"><img 
+                      src="assets/images/spring_security_dependency.png" alt="" /></a>
+                      <p>W pliku application.properties muisimy określić klucz do kodowania JSON Web Token, oraz jego czas przedawnienia</p>
+                    <pre><code class="language-java">
+SpringbootBackendApplication.app.jwtSecret= secretKey
+SpringbootBackendApplication.app.jwtExpirationsMS= 86400000
+                      
+                    </code></pre>
+                    <p>Za konfigurację odpowiadać będzie klasa WebSecurityConfig , dziedzicząca po WebSecurityConfigurerAdapter</p>
+                    <h5>WebSecurityConfig</h5>
+                    <pre><code class="language-java">
+@Configuration    //adnotacja oznaczająca klasę jako konfiguracyjną
+@EnableWebSecurity  //adnotacja pozwalająca zastosować klasę do systemu zabezbieczeń
+@EnableGlobalMethodSecurity(prePostEnabled = true)  //andotacja zezwalająca na zmianę ustawień dostępności 
+                                                      //przy konkretnej metodzie
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Autowired
+    UserDetailsServiceImpl userDetailsService;  //zapewnia informacje o użytkowniku 
+    @Autowired
+    private AuthEntryPointJwt unauthorizedHandler;  //zapewnia obsługę błędów
+    @Bean
+    public AuthTokenFilter authenticationJwtTokenFilter() {
+        return new AuthTokenFilter();   //zapewnia uwierzytelnianie
+    }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(); //zapewnia enkoder haseł
+    }
+    @Override
+    public void configure(AuthenticationManagerBuilder authenticationManagerBuilder) throws Exception {
+        authenticationManagerBuilder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
+    } //Dodajemy do konfiguracji Spring Security informacje o użytkowiku i enkoder haseł
+    @Bean
+    @Override
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return super.authenticationManagerBean();
+    }
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {  //konfiguracja HttpSecurity
+        http.cors().and().csrf().disable()  //wyłączamy CORS i CSRF
+                .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()  //określamy klasę do obsługi wyjątków
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()//wyłączamy tworzenie sesji
+                .authorizeRequests().antMatchers("/api/auth/**").permitAll()//określamy dostęp do konkretnych podstron
+                .antMatchers("/api/test/**").permitAll()
+                .antMatchers("/api/v1/**").permitAll()
+                .antMatchers("api/vi/adminPanel").hasRole("ADMIN")
+                .anyRequest().authenticated();//każdy request będzie poddany uwierzytelnianiu
+        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class); //Dodajemy nasze uwierzytelnianie tokenowe    
+    }
+}
+                    </code></pre>
+                    <h5>AuthTokenFilter</h5>
+                    <p>Filtr obsługujący requesty</p>
+                    <pre><code class="language-java">
+  public class AuthTokenFilter extends OncePerRequestFilter {
+    @Autowired
+    private JwtUtils jwtUtils;
+    @Autowired
+    private UserDetailsServiceImpl userDetailService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+        try {
+            String jwt = parseJwt(request);// za pomocą metody parseJwt wybieramy JWT z requesta
+            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {  //sprawdzamy poprawność tokenu
+                String username = jwtUtils.getUserNameFromJwtToken(jwt);  //pobieramy nazwę użytkownika
+                UserDetails userDetails = userDetailService.loadUserByUsername(username); //z pomocą klasy UserDetails pobieramy użytkownika z bazy danych
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(//tworzymy obiekt Authentication i dodajemy do niego
+                        userDetails, null, userDetails.getAuthorities());                                    //dane użytkownika
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));      //dodajemy dane z requestu do autoryzacji  
+                SecurityContextHolder.getContext().setAuthentication(authentication);     
+            }
+        } catch (Exception e) {;
+            logger.error("Cannot set user authentication: {}", e);
+        }
+        filterChain.doFilter(request, response);//przekazanie dalej requesta
+    }
+    private String parseJwt(HttpServletRequest request) {
+        String headerAuth = request.getHeader("Authorization");
+        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7, headerAuth.length());
+        }
+        return null;
+    }
+}
+                      
+                    </code></pre>
+                    <h5>AuthEntryPointJwt</h5>
+                    <p>Obsługa błędów</p>
+                    <pre><code class="language-java">
+@Component
+public class AuthEntryPointJwt implements AuthenticationEntryPoint {
+    private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response,
+                         AuthenticationException authException) throws IOException, ServletException {
+        logger.error("Unauthorized error: {}", authException.getMessage());
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Error: Unauthorized");
+    }
+}
+                    </code></pre>
+                  </section>
+
+                  <hr class="divider" />
+               <!-- UserDetails
+                  ============================ -->
+                  <section id="idocs_uwierzytelnianie_UserDetails">
+                    <h2>UserDetails</h2>
+                    <h5>UserDetailsImpl</h5>
+                    <p>Klasa pozwoli nam wydobyć informację o użytkowniku po pomyślnym uwierzytelnieniu</p>
+                    <pre><code class="language-java">
+public class UserDetailsImpl implements UserDetails {
+  private Long id;
+  private String username;
+  private String email;
+  @JsonIgnore
+  private String password;
+  private Collection&lt;? extends GrantedAuthority&gt; authorities;
+  public UserDetailsImpl(Long id, String username, String email, String password, Collection&lt;? extends GrantedAuthority&gt; authorities) {
+      this.id = id;
+      this.username = username;
+      this.email = email;
+      this.password = password;
+      this.authorities = authorities;
+  }
+  public static UserDetailsImpl build(User user){
+      List&lt;GrantedAuthority&gt; authorities = user.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getName().name()))
+              .collect(Collectors.toList());
+              //Do porawnego działania Spring Security musimy przekonwertować Set&lt;Role&gt; na List&lt;GrantedAuthority&gt;
+      return new UserDetailsImpl(
+              user.getId(),
+              user.getUsername(),
+              user.getEmail(),
+              user.getPassword(),
+              authorities);
+  }
+  public Long getId() {
+      return id;
+  }
+  @Override
+  public String getUsername() {
+      return username;
+  }
+  public String getEmail() {
+      return email;
+  }
+  @Override
+  public String getPassword() {
+      return password;
+  }
+  @Override
+  public Collection&lt;? extends GrantedAuthority&gt; getAuthorities() {
+      return authorities;
+  }
+  @Override
+  public boolean isAccountNonExpired(){
+      return true;
+  }
+  @Override
+  public boolean isAccountNonLocked() {
+      return true;
+  }
+  @Override
+  public boolean isCredentialsNonExpired() {
+      return true;
+  }
+  @Override
+  public boolean isEnabled() {
+      return true;
+  }
+  @Override
+  public boolean equals(Object o){
+      if(this == o)
+          return true;
+      if(o == null || getClass() != o.getClass())
+          return false;
+      UserDetailsImpl user = (UserDetailsImpl) o;
+      return Objects.equals(id,user.id);
+  }
+}
+                      
+                    </code></pre>
+                    <h5>UserDetailsServiceImpl</h5>
+                    <p>Klasa służy nam do stworzeniu obiektu klasy UserDetailsImpl w oparciu o dane z repozytorium</p>
+                    <pre><code class="language-java">
+@Service
+public class UserDetailsServiceImpl implements UserDetailsService {
+    @Autowired
+    UserRepo userRepo;
+    @Override
+    @Transactional  //transakcja z bazą danych
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found with username: " + username));
+        return UserDetailsImpl.build(user);//budujemy obiekt klasy UserDetailsImpl w oparciu o znalezionego użytkownika z bazy danych
+    }
+}
+                      
+                    </code></pre>
+                  </section>
+
+                  <hr class="divider" />
+               <!-- JSON Web Token
+                  ============================ -->
+                  <section id="idocs_uwierzytelnianie_JWT">
+                    <h2>JSON Web Token</h2>
+                    <h5>JwtUtils</h5>
+                    <p>Klasa odpowiedzialna za generowanie i walidację tokenów</p>
+                    <pre><code class="language-java">
+@Component
+public class JwtUtils {
+    private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+    @Value("${SpringbootBackendApplication.app.jwtSecret}") //pobieramy nasz klucz kodowania z application propperities
+    private String jwtSecret;
+    @Value("${SpringbootBackendApplication.app.jwtExpirationsMS}")
+    private int jwtExpirationMs;
+    public String generateJwtToken(Authentication authentication) {
+        UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+        return Jwts.builder() //do tokena dodajemy:
+                .setSubject((userPrincipal.getUsername()))   //nazwę użytkownika 
+                .setIssuedAt(new Date())    //datę utworzenia
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs)) //termin ważności
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)  //wybieramy algorytm kodujący wraz z naszym kluczem
+                .compact(); //compact zwraca nam nasz JWT w postaci URL-safe string
+    }
+    public String getUserNameFromJwtToken(String token) { //metoda wydobywająca nazwę użytkownika z tokenu
+        return Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody().getSubject(); 
+    }
+    public boolean validateJwtToken(String authToken) {//walidacja tokenu
+        try {
+            Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(authToken); //jeśli token udało się odczytać przy pomocy naszego klucza
+            return true;                                                      //token zwalidowany pomyślnie
+        } catch (SignatureException e) {
+            logger.error("Invalid JWT signature: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            logger.error("Invalid JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            logger.error("JWT token is expired: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            logger.error("JWT token is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            logger.error("JWT claims string is empty: {}", e.getMessage());
+        }
+        return false;
+    }
+}
+                      
+                    </code></pre>
+                    
+                  </section>
+                  <h5>JwtResponse</h5>
+                    <p>Klasa odpowiedzialna za generowanie odpowiedzi z tokenem</p>
+                    <pre><code class="language-java">
+  public class JwtResponse {
+    private String token;
+    private String type = "Bearer";
+    private Long id;
+    private String username;
+    private String email;
+    private List<String> roles;
+
+    public JwtResponse(String accessToken, Long id, String username, String email, List<String> roles) {
+        this.token = accessToken;
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.roles = roles;
+    }
+
+    public String getAccessToken() {
+        return token;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.token = accessToken;
+    }
+
+    public String getTokenType() {
+        return type;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.type = tokenType;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public List<String> getRoles() {
+        return roles;
+    }
+}
+                    </code></pre>
+
+                  <hr class="divider" />
+               <!-- Kontroler
+                  ============================ -->
+                  <section id="idocs_uwierzytelnianie_kontroler">
+                    <h2>Kontroler</h2>
+                    <pre><code class="language-java">
+@RestController
+@RequestMapping("/api/auth/")
+public class AuthController {
+    @Autowired
+    AuthenticationManager authenticationManager;
+    @Autowired
+    UserRepo userRepository;
+    @Autowired
+    RoleRepo roleRepository;
+    @Autowired
+    PasswordEncoder encoder;
+    @Autowired
+    JwtUtils jwtUtils;
+    @PostMapping("/signin")   //ResponseEntity reprezentuje HTTP response(status code, headers, body)
+    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateJwtToken(authentication);
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(item -> item.getAuthority()) //metoda odpowiada za konwertowanie kolejnych elementów
+                .collect(Collectors.toList());  //collect utworzy nam obiekt List
+        return ResponseEntity.ok(new JwtResponse(jwt, //określamy status i budujemy response na podstawie klasy JwtResponse
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail(),
+                roles));
+    }
+    @PostMapping("/signup")
+    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+        if (userRepository.existsByUsername(signUpRequest.getUsername())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: Username is already taken!"));
+        }
+        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: Email is already in use!"));
+        }
+       
+        User user = new User(signUpRequest.getUsername(),
+                signUpRequest.getEmail(),
+                encoder.encode(signUpRequest.getPassword()));
+        Set<String> strRoles = signUpRequest.getRole();
+        Set<Role> roles = new HashSet<>();
+        if (strRoles == null) {
+            Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+            roles.add(userRole);
+        } else {
+            strRoles.forEach(role -> {
+                switch (role) {
+                    case "admin":
+                        Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
+                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                        roles.add(adminRole);
+                        break;
+                    default:
+                        Role userRole = roleRepository.findByName(ERole.ROLE_USER)
+                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                        roles.add(userRole);
+                }
+            });
+        }
+        user.setRoles(roles);
+        userRepository.save(user);
+        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    }
+}
+                      
+                    </code></pre>
                   </section>
 
                   <hr class="divider" />
